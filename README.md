@@ -199,3 +199,21 @@ git push -u origin main
 ```
 
 Replace `YOUR_USERNAME` with your GitHub username. Add the live demo URL to the repository's **About → Website** field so portfolio visitors can play directly.
+
+
+## Direct Cloudflare binding configuration
+
+Keep your existing `wrangler.json`, `wrangler.jsonc`, or `wrangler.toml` at the repository root before building. That file is the source of truth for Cloudflare bindings. The Vite configuration detects it and does not add the starter D1 or R2 placeholders alongside your bindings. Do not edit `dist/server/wrangler.json` by hand: it is regenerated during builds.
+
+When no root Wrangler file exists, the starter retains local fallback bindings so development and the original Sites workflow continue to work. `wrangler.local.example.json` is a development template and is not automatically used as a production Wrangler configuration.
+
+After configuring your own root Wrangler file:
+
+```sh
+npm run build
+npx wrangler deploy --dry-run --config dist/server/wrangler.json
+```
+
+Check that `dist/server/wrangler.json` contains exactly one `d1_databases` entry with `binding: "DB"` and your existing database name and ID. A dry run does not deploy the Worker or apply database migrations.
+
+The supplied fix changes only `vite.config.ts`; the game implementation and committed database schema/migrations are unchanged. The supplied archive contains no production Wrangler configuration or database credentials. Preserve your own root Wrangler file when replacing source files.

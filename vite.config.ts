@@ -1,4 +1,5 @@
 import vinext from "vinext";
+import { existsSync } from "node:fs";
 import { defineConfig } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { readExecutionProfile } from "./scripts/execution-profile.mjs";
@@ -9,6 +10,10 @@ const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
 
 const { d1, r2 } = hostingConfig;
+// A user's Wrangler file owns deployment bindings. The Cloudflare plugin
+// concatenates binding arrays, so do not inject preview bindings alongside it.
+const wranglerConfigPath = ["wrangler.json", "wrangler.jsonc", "wrangler.toml"]
+  .find((filename) => existsSync(filename));
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
@@ -67,8 +72,11 @@ export default defineConfig(async ({ command }) => {
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         inspectorPort: false,
+        ...(wranglerConfigPath ? { configPath: wranglerConfigPath } : {}),
         config: {
-          ...localBindingConfig,
+          ...(wranglerConfigPath
+            ? { main: "./build/sites-worker.ts" }
+            : localBindingConfig),
           ...(command === "serve"
             ? {
                 services: [
